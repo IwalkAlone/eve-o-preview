@@ -40,6 +40,7 @@ namespace EveOPreview.View
 		private Size _baseZoomMaximumSize;
 
 		private HotkeyHandler _hotkeyHandler;
+		private HotkeyHandler _nextHotkeyHandler;
 		#endregion
 
 		protected ThumbnailView(IWindowManager windowManager)
@@ -114,6 +115,8 @@ namespace EveOPreview.View
 		public Action<IntPtr> ThumbnailLostFocus { get; set; }
 
 		public Action<IntPtr> ThumbnailActivated { get; set; }
+
+		public Action NextThumbnailActivated { get; set; }
 
 		public Action<IntPtr, bool> ThumbnailDeactivated { get; set; }
 
@@ -317,6 +320,10 @@ namespace EveOPreview.View
 			this._hotkeyHandler = new HotkeyHandler(this.Handle, hotkey);
 			this._hotkeyHandler.Pressed += HotkeyPressed_Handler;
 			this._hotkeyHandler.Register();
+
+			this._nextHotkeyHandler = new HotkeyHandler(this.Handle, Keys.Tab);
+			this._nextHotkeyHandler.Pressed += NextHotkeyPressed_Handler;
+			this._nextHotkeyHandler.Register();
 		}
 
 		public void UnregisterHotkey()
@@ -330,6 +337,11 @@ namespace EveOPreview.View
 			this._hotkeyHandler.Pressed -= HotkeyPressed_Handler;
 			this._hotkeyHandler.Dispose();
 			this._hotkeyHandler = null;
+
+			this._nextHotkeyHandler.Unregister();
+			this._nextHotkeyHandler.Pressed -= NextHotkeyPressed_Handler;
+			this._nextHotkeyHandler.Dispose();
+			this._nextHotkeyHandler = null;
 		}
 
 		public void Refresh(bool forceRefresh)
@@ -499,10 +511,23 @@ namespace EveOPreview.View
 
 		private void HotkeyPressed_Handler(object sender, HandledEventArgs e)
 		{
+			Console.WriteLine("HotkeyPressedHandler");
+
 			this.ThumbnailActivated?.Invoke(this.Id);
 
 			e.Handled = true;
 		}
+
+		private void NextHotkeyPressed_Handler(object sender, HandledEventArgs e)
+		{
+			Console.WriteLine("NextHotkeyPressedHandler");
+			Console.WriteLine(this.Title);
+
+			this.NextThumbnailActivated?.Invoke();
+
+			e.Handled = true;
+		}
+
 		#endregion
 
 		#region Custom Mouse mode

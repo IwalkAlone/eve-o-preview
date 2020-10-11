@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Windows.Threading;
 using EveOPreview.Configuration;
 using EveOPreview.Mediator.Messages;
@@ -114,6 +116,7 @@ namespace EveOPreview.Services
 				view.ThumbnailFocused = this.ThumbnailViewFocused;
 				view.ThumbnailLostFocus = this.ThumbnailViewLostFocus;
 				view.ThumbnailActivated = this.ThumbnailActivated;
+				view.NextThumbnailActivated = this.NextThumbnailActivated;
 				view.ThumbnailDeactivated = this.ThumbnailDeactivated;
 
 				view.RegisterHotkey(this._configuration.GetClientHotkey(view.Title));
@@ -408,6 +411,33 @@ namespace EveOPreview.Services
 					this.UpdateClientLayouts();
 					this.RefreshThumbnails();
 				}, TaskScheduler.FromCurrentSynchronizationContext());
+		}
+
+		private void NextThumbnailActivated()
+        {
+			if (this._activeClient.Handle == IntPtr.Zero || this._thumbnailViews.Count == 0)
+            {
+				return;
+            }
+
+			IThumbnailView currentView = this._thumbnailViews[this._activeClient.Handle];
+			var sortedViews = this._thumbnailViews.OrderBy(view => view.Key.ToInt32()).Select(view => view.Value).ToList();
+			var nextView = sortedViews.SkipWhile(view => view.Id != currentView.Id).Skip(1).DefaultIfEmpty(sortedViews[0]).FirstOrDefault();
+			
+			if (nextView != null)
+            {
+				Task.Run(() =>
+				{
+					this._windowManager.ActivateWindow(nextView.Id);
+				})
+				.ContinueWith((task) =>
+				{
+					// This code should be executed on UI thread
+					this.SwitchActiveClient(nextView.Id, nextView.Title);
+					this.UpdateClientLayouts();
+					this.RefreshThumbnails();
+				}, TaskScheduler.FromCurrentSynchronizationContext());
+			}
 		}
 
 		private void ThumbnailDeactivated(IntPtr id, bool switchOut)
